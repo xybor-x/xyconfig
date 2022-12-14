@@ -20,3 +20,7 @@
 
 # Profiling files
 *.prof
+
+# Test xyconfig
+Test*.json
+Test*.ini
