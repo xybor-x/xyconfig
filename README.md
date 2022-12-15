@@ -16,11 +16,18 @@ event-oriented watching.
 # Get started
 
 ```golang
-xyconfig.Read(xyconfig.JSON, `{"general": {"timeout": 3.14}}`)
-xyconfig.ReadFile("config/default.ini")
-xyconfig.ReadFile("config/override.yml")
+var config = xyconfig.GetConfig("yourapp")
 
-xyconfig.AddHook("general.timeout", func (e Event) {
+// Read config from a string.
+config.Read(xyconfig.JSON, `{"general": {"timeout": 3.14}}`)
+
+// Read config from default.ini but do not watch the file.
+config.ReadFile("config/default.ini", false)
+
+// Read config from override.ini and watch the file change.
+config.ReadFile("config/override.yml", true)
+
+config.AddHook("general.timeout", func (e xyconfig.Event) {
     var timeout, ok = e.New.AsFloat()
     if !ok {
         return
@@ -28,8 +35,9 @@ xyconfig.AddHook("general.timeout", func (e Event) {
     SetTimeoutToSomeThing(timeout)
 })
 
-xyconfig.AddHook("general", func (e Event) {
-    var timeout = e.New.MustConfig().MustGet("timeout").MustFloat()
+config.AddHook("general", func (e Event) {
+    var general = e.New.MustConfig()
+    var timeout = general.MustGet("timeout").MustFloat()
     SetTimeoutToSomething(timeout)
 })
 ```

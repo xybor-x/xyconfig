@@ -236,17 +236,17 @@ func (c *Config) AddHook(key string, f func(e Event)) {
 
 // ReadMap reads the config values from a map. If strict is false and the values
 // of map are strings, it allows casting them to other types.
-func (c *Config) ReadMap(m map[string]any, strict bool) error {
+func (c *Config) ReadMap(m map[string]any) error {
 	for k, v := range m {
 		switch t := v.(type) {
 		case map[string]any:
 			var cfg = GetConfig(c.name + "." + k)
-			if err := cfg.ReadMap(t, strict); err != nil {
+			if err := cfg.ReadMap(t); err != nil {
 				return err
 			}
-			c.Set(k, cfg, strict)
+			c.Set(k, cfg, true)
 		default:
-			c.Set(k, t, strict)
+			c.Set(k, t, true)
 		}
 	}
 
@@ -261,7 +261,7 @@ func (c *Config) ReadJSON(b []byte) error {
 		return xyerror.ValueError.Newf("cannot parse json data (%v)", err)
 	}
 
-	return c.ReadMap(m, true)
+	return c.ReadMap(m)
 }
 
 // ReadINI reads the config values from a byte array under INI format.
@@ -271,16 +271,13 @@ func (c *Config) ReadINI(b []byte) error {
 		return xyerror.ValueError.New(err)
 	}
 
-	var m = map[string]any{}
 	for _, section := range cfg.Sections() {
-		var sectionMap = map[string]any{}
 		for _, key := range section.Keys() {
-			sectionMap[key.Name()] = key.Value()
+			c.Set(section.Name()+"."+key.Name(), key.Value(), false)
 		}
-		m[section.Name()] = sectionMap
 	}
 
-	return c.ReadMap(m, false)
+	return nil
 }
 
 // ReadBytes reads the config values from a bytes array under any format.

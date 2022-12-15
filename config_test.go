@@ -74,7 +74,7 @@ func TestConfigReadMap(t *testing.T) {
 			"bizz": "bemm",
 		},
 		"nil": nil,
-	}, true)
+	})
 
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
 	xycond.ExpectEqual(cfg.MustGet("buzz.bizz").MustString(), "bemm").Test(t)
