@@ -24,3 +24,5 @@
 # Test xyconfig
 Test*.json
 Test*.ini
+Benchmark*.json
+Benchmark*.ini

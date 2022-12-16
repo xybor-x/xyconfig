@@ -109,6 +109,9 @@ func (v Value) MustFloat() float64 {
 // failed to cast.
 func (v Value) AsString() (string, bool) {
 	var s, ok = v.value.(string)
+	if !ok && !v.strict {
+		return fmt.Sprint(v.value), true
+	}
 	return s, ok
 }
 
@@ -126,10 +129,10 @@ func (v Value) MustString() string {
 func (v Value) AsArray() ([]Value, bool) {
 	if s, ok := v.value.(string); ok && !v.strict {
 		s = strings.Trim(s, " ")
-		if !strings.HasPrefix(s, "[") || !strings.HasSuffix(s, "]") {
+		if s[0] != '[' || s[len(s)-1] != ']' {
 			return nil, false
 		}
-		s = strings.Trim(s, "[]")
+		s = s[1 : len(s)-1]
 		var elements []Value
 		for _, e := range strings.Split(s, ",") {
 			e = strings.Trim(e, " ")
