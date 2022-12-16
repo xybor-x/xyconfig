@@ -43,7 +43,8 @@ const (
 	INI
 )
 
-var rootLoggerName = "xybor.xyplatform.xyconfig"
+var loggerName = "xybor.xyplatform.xyconfig"
+var logger = xylog.GetLogger(loggerName)
 
 var extensions = map[string]Format{
 	".json": JSON,
@@ -77,12 +78,6 @@ type Config struct {
 	// hook contains functions for hooking when a change is applied.
 	hook map[string]func(Event)
 
-	// logger is used to log useful information.
-	logger *xylog.Logger
-
-	// isWatch is used to determine if watcher works or not.
-	isWatch bool
-
 	// watcher tracks changes of files.
 	watcher *fsnotify.Watcher
 
@@ -96,12 +91,16 @@ var globalLock = &xylock.RWLock{}
 // configMap stores all Config instances created in program.
 var configMap = map[string]*Config{}
 
-// GetConfig returns the existed Config instance or creates a new one if it
-// doesn't exist.
+// GetConfig gets the existing Config instance by the name or creates a new one
+// if it hasn't existed yet.
 //
-// For sub-Config, they are automatically created when new key-value pairs is
-// set to Config. Name of sub-Config is the combination of its parent Config and
-// the its key, with dot-separated.
+// A Config instance is automatically created when new a dot-separated keys is
+// added to the current Config. Its name is the dot-separated combination of the
+// current Config's name and the its key.
+//
+// For example, when the key "system.delimiter" is added to a Config named
+// "app", a new Config is automatically created with the name "app.system". This
+// Config instance contains key-value pair of "delimiter".
 func GetConfig(name string) *Config {
 	var c = globalLock.RLockFunc(func() any {
 		var c, ok = configMap[name]
@@ -116,21 +115,15 @@ func GetConfig(name string) *Config {
 	}
 
 	var cfg = &Config{
-		config:  make(map[string]Value),
-		hook:    make(map[string]func(Event)),
-		isWatch: true,
-		lock:    &xylock.RWLock{},
+		config: make(map[string]Value),
+		hook:   make(map[string]func(Event)),
+		lock:   &xylock.RWLock{},
 	}
 
 	if name == "" {
-		name = fmt.Sprint(cfg)
+		name = fmt.Sprintf("%p", cfg)
 	}
-
 	cfg.name = name
-	// Use the address string as the name of logger.
-	cfg.logger = xylog.GetLogger(rootLoggerName + "." + fmt.Sprint(cfg))
-	cfg.logger.AddField("module", "xyconfig")
-	cfg.logger.AddField("name", name)
 
 	globalLock.WLockFunc(func() {
 		configMap[name] = cfg
@@ -138,15 +131,28 @@ func GetConfig(name string) *Config {
 	return cfg
 }
 
-// NoWatch notifies the Config not to watch file changes.
-func (c *Config) NoWatch() {
+// CloseWatcher closes the watcher.
+func (c *Config) CloseWatcher() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	c.isWatch = false
+	var err error
 	if c.watcher != nil {
-		c.watcher.Close()
+		err = c.watcher.Close()
+		c.watcher = nil
 	}
+	return err
+}
+
+// UnWatch removes a filename from the watcher.
+func (c *Config) UnWatch(filename string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if c.watcher != nil {
+		return c.watcher.Remove(filename)
+	}
+	return nil
 }
 
 // Set assigns the value to key. If the key doesn't exist, this method will
@@ -297,8 +303,8 @@ func (c *Config) Read(format Format, s string) error {
 	return c.ReadBytes(format, []byte(s))
 }
 
-// ReadFile reads the config values from a file. If watch is true, it reloads
-// config when the file is changed.
+// ReadFile reads the config values from a file. If watch is true, it will
+// reload config when the file is changed.
 func (c *Config) ReadFile(filename string, watch bool) error {
 	var fileFormat = UnknownFormat
 	for ext, format := range extensions {
@@ -380,35 +386,33 @@ func (c *Config) initWatcher() error {
 	})
 
 	go func() {
-		for {
-			c.lock.RLock()
-			var watcherEvent = c.watcher.Events
-			var watcherError = c.watcher.Errors
-			c.lock.RUnlock()
+		var watcherEvents = watcher.Events
+		var watcherErrors = watcher.Errors
 
+		for {
 			select {
-			case event, ok := <-watcherEvent:
+			case event, ok := <-watcherEvents:
 				if !ok {
-					c.logger.Event("watcher-stop").Info()
+					logger.Event("watcher-stop").Info()
 					return
 				}
 
 				if event.Has(fsnotify.Write) {
 					var err = c.ReadFile(event.Name, false)
 					if err != nil {
-						c.logger.Event("reload-error").
+						logger.Event("reload-error").
 							Field("filename", event.Name).Field("error", err).Warning()
 					} else {
-						c.logger.Event("reload-config").Field("filename", event.Name).Info()
+						logger.Event("reload-config").Field("filename", event.Name).Info()
 					}
 				}
 
-			case err, ok := <-watcherError:
+			case err, ok := <-watcherErrors:
 				if !ok {
-					c.logger.Event("watcher-stop").Info()
+					logger.Event("watcher-stop").Info()
 					return
 				}
-				c.logger.Event("watcher-error").Field("error", err).Warning()
+				logger.Event("watcher-error").Field("error", err).Warning()
 			}
 		}
 	}()
@@ -419,11 +423,10 @@ func (c *Config) initWatcher() error {
 // watchFile adds filename to watcher. If the watcher has not initialized yet,
 // create a new one.
 func (c *Config) watchFile(filename string) error {
-	if !c.lock.RLockFunc(func() any { return c.isWatch }).(bool) {
-		return nil
-	}
+	var watcher = c.lock.RLockFunc(func() any {
+		return c.watcher
+	}).(*fsnotify.Watcher)
 
-	var watcher = c.lock.RLockFunc(func() any { return c.watcher }).(*fsnotify.Watcher)
 	if watcher == nil {
 		if err := c.initWatcher(); err != nil {
 			return err

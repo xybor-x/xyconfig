@@ -170,6 +170,8 @@ func TestConfigReadFileWithChange(t *testing.T) {
 	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "bar"}`), 0644)
 
 	var cfg = xyconfig.GetConfig(t.Name())
+	defer cfg.CloseWatcher()
+
 	cfg.ReadFile(t.Name()+".json", true)
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
 
@@ -178,36 +180,12 @@ func TestConfigReadFileWithChange(t *testing.T) {
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "buzz").Test(t)
 }
 
-func TestConfigReadFileWithChangeUnWatch(t *testing.T) {
-	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "bar"}`), 0644)
-
-	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.NoWatch()
-	cfg.ReadFile(t.Name()+".json", true)
-	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
-
-	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "buzz"}`), 0644)
-	time.Sleep(time.Millisecond)
-	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
-}
-
-func TestConfigReadFileUnWatchAfterRead(t *testing.T) {
-	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "bar"}`), 0644)
-
-	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.ReadFile(t.Name()+".json", true)
-	cfg.NoWatch()
-	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
-
-	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "buzz"}`), 0644)
-	time.Sleep(time.Millisecond)
-	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
-}
-
 func TestConfigReadFileWithErrorFileAfterChange(t *testing.T) {
 	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "bar"}`), 0644)
 
 	var cfg = xyconfig.GetConfig(t.Name())
+	defer cfg.CloseWatcher()
+
 	cfg.ReadFile(t.Name()+".json", true)
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
 

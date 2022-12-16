@@ -10,13 +10,13 @@
 
 # Introduction
 
-Package xyconfig supports to manage configuration files and real-time
-event-oriented watching.
+Package xyconfig supports to thread-safe read, control, and monitor
+configuration files.
 
 # Get started
 
 ```golang
-var config = xyconfig.GetConfig("yourapp")
+var config = xyconfig.GetConfig("app")
 
 // Read config from a string.
 config.Read(xyconfig.JSON, `{"general": {"timeout": 3.14}}`)
@@ -26,6 +26,8 @@ config.ReadFile("config/default.ini", false)
 
 // Read config from override.ini and watch the file change.
 config.ReadFile("config/override.yml", true)
+
+fmt.Println(config.MustGet("general.timeout").MustFloat())
 
 config.AddHook("general.timeout", func (e xyconfig.Event) {
     var timeout, ok = e.New.AsFloat()
@@ -41,3 +43,11 @@ config.AddHook("general", func (e Event) {
     SetTimeoutToSomething(timeout)
 })
 ```
+
+# Benchmark
+
+| Operation           |         Time | Objects Allocated |
+| :------------------ | -----------: | ----------------: |
+| Get                 |     70 ns/op |       0 allocs/op |
+| ChangeConfig        | 413763 ns/op |     724 allocs/op |
+| WriteFile           | 335892 ns/op |       3 allocs/op |
