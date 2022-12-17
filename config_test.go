@@ -66,6 +66,18 @@ func TestConfigSetWithHook(t *testing.T) {
 	xycond.ExpectEqual(event.Key, t.Name()+".foo").Test(t)
 }
 
+func TestConfigSetWithHookAny(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	var event xyconfig.Event
+	cfg.AddHook("", func(e xyconfig.Event) {
+		event = e
+	})
+	cfg.Set("foo", "bar", true)
+	xycond.ExpectTrue(event.Old.IsNil()).Test(t)
+	xycond.ExpectEqual(event.New.MustString(), "bar").Test(t)
+	xycond.ExpectEqual(event.Key, t.Name()+".foo").Test(t)
+}
+
 func TestConfigReadMap(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
 	cfg.ReadMap(map[string]any{

@@ -189,8 +189,8 @@ func (c *Config) Set(key string, value any, strict bool) bool {
 		var prefix string
 		var hook func(Event)
 		for k, v := range c.hook {
-			if key == k || strings.HasPrefix(key, k+".") {
-				if len(k) > len(prefix) {
+			if k == "" || key == k || strings.HasPrefix(key, k+".") {
+				if k == "" || len(k) > len(prefix) {
 					prefix = k
 					hook = v
 				}
