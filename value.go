@@ -56,16 +56,24 @@ func (v Value) MustConfig() *Config {
 // AsInt returns the value as int. The latter return value is false if failed to
 // cast.
 func (v Value) AsInt() (int, bool) {
-	if s, ok := v.value.(string); ok && !v.strict {
-		var i, err = strconv.Atoi(s)
-		if err != nil {
-			return 0, false
+	switch t := v.value.(type) {
+	case string:
+		if !v.strict {
+			var i, err = strconv.Atoi(t)
+			if err != nil {
+				return 0, false
+			}
+			return i, true
 		}
-		return i, true
+	case float64:
+		if t == float64(int(t)) {
+			return int(t), true
+		}
+	case int:
+		return t, true
 	}
 
-	var i, ok = v.value.(int)
-	return i, ok
+	return 0, false
 }
 
 // MustInt returns the value as int. It panics if failed to cast.
@@ -80,20 +88,22 @@ func (v Value) MustInt() int {
 // AsFloat returns the value as float64. The latter return value is false if
 // failed to cast.
 func (v Value) AsFloat() (float64, bool) {
-	if s, ok := v.value.(string); ok && !v.strict {
-		var f, err = strconv.ParseFloat(s, 64)
-		if err != nil {
-			return 0, false
+	switch t := v.value.(type) {
+	case string:
+		if !v.strict {
+			var f, err = strconv.ParseFloat(t, 64)
+			if err != nil {
+				return 0, false
+			}
+			return f, true
 		}
-		return f, true
+	case int:
+		return float64(t), true
+	case float64:
+		return t, true
 	}
 
-	if i, ok := v.value.(int); ok {
-		return float64(i), ok
-	}
-
-	var f, ok = v.value.(float64)
-	return f, ok
+	return 0, false
 }
 
 // MustFloat returns the value as float64. It panics if failed to cast.

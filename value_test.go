@@ -68,6 +68,7 @@ func TestValueAsInt(t *testing.T) {
 	cfg.Set("bar", "string", true)
 	cfg.Set("buzz", "1", false)
 	cfg.Set("bizz", "string", false)
+	cfg.Set("float", 1.0, false)
 
 	var i int
 	var ok bool
@@ -85,6 +86,10 @@ func TestValueAsInt(t *testing.T) {
 
 	_, ok = cfg.MustGet("bizz").AsInt()
 	xycond.ExpectFalse(ok).Test(t)
+
+	i, ok = cfg.MustGet("float").AsInt()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(i, 1).Test(t)
 }
 
 func TestValueMustFloat(t *testing.T) {
