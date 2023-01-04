@@ -137,6 +137,51 @@ func TestValueAsFloat(t *testing.T) {
 	xycond.ExpectFalse(ok).Test(t)
 }
 
+func TestValueMustBool(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	cfg.Set("foo", true, true)
+	cfg.Set("fizz", 1, true)
+	cfg.Set("bar", "false", true)
+	cfg.Set("buzz", "false", false)
+	cfg.Set("bizz", "FALSE", false)
+
+	xycond.ExpectEqual(cfg.MustGet("foo").MustBool(), true).Test(t)
+	xycond.ExpectPanic(xyconfig.CastError, func() { cfg.MustGet("fizz").MustBool() }).Test(t)
+	xycond.ExpectPanic(xyconfig.CastError, func() { cfg.MustGet("bar").MustBool() }).Test(t)
+	xycond.ExpectEqual(cfg.MustGet("buzz").MustBool(), false).Test(t)
+	xycond.ExpectEqual(cfg.MustGet("bizz").MustBool(), false).Test(t)
+}
+
+func TestValueAsBool(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	cfg.Set("foo", true, true)
+	cfg.Set("fizz", 1, true)
+	cfg.Set("bar", "false", true)
+	cfg.Set("buzz", "false", false)
+	cfg.Set("bizz", "FALSE", false)
+
+	var b bool
+	var ok bool
+
+	b, ok = cfg.MustGet("foo").AsBool()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(b, true)
+
+	_, ok = cfg.MustGet("fizz").AsBool()
+	xycond.ExpectFalse(ok).Test(t)
+
+	_, ok = cfg.MustGet("bar").AsBool()
+	xycond.ExpectFalse(ok).Test(t)
+
+	b, ok = cfg.MustGet("buzz").AsBool()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(b, false)
+
+	b, ok = cfg.MustGet("bizz").AsBool()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(b, false)
+}
+
 func TestValueMustString(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
 	cfg.Set("foo", "string", true)
