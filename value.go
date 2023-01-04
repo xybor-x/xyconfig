@@ -115,6 +115,34 @@ func (v Value) MustFloat() float64 {
 	return f
 }
 
+// AsBool returns the value as bool. The latter return value is false if failed
+// to cast.
+func (v Value) AsBool() (val bool, ok bool) {
+	switch t := v.value.(type) {
+	case string:
+		if !v.strict {
+			var f, err = strconv.ParseBool(t)
+			if err != nil {
+				return false, false
+			}
+			return f, true
+		}
+	case bool:
+		return t, true
+	}
+
+	return false, false
+}
+
+// MustBool returns the value as bool. It panics if failed to cast.
+func (v Value) MustBool() bool {
+	var b, ok = v.AsBool()
+	if !ok {
+		panic(CastError.Newf("got a %T, not bool", v.value))
+	}
+	return b
+}
+
 // AsString returns the value as string. The latter return value is false if
 // failed to cast.
 func (v Value) AsString() (string, bool) {
