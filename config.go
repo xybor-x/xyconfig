@@ -27,9 +27,11 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-ini/ini"
+	"github.com/joho/godotenv"
 	"github.com/xybor-x/xyerror"
 	"github.com/xybor-x/xylock"
 	"github.com/xybor-x/xylog"
@@ -43,6 +45,7 @@ const (
 	UnknownFormat Format = iota
 	JSON
 	INI
+	ENV
 )
 
 var loggerName = "xybor.xyplatform.xyconfig"
@@ -51,6 +54,7 @@ var logger = xylog.GetLogger(loggerName)
 var extensions = map[string]Format{
 	".json": JSON,
 	".ini":  INI,
+	".env":  ENV,
 }
 
 // Event represents for a changes in the config.
@@ -82,6 +86,9 @@ type Config struct {
 
 	// watcher tracks changes of files.
 	watcher *fsnotify.Watcher
+
+	// envWatcher tracks the waching of environment variables.
+	envWatcher *time.Timer
 
 	// lock avoids race condition.
 	lock *xylock.RWLock
@@ -143,6 +150,12 @@ func (c *Config) CloseWatcher() error {
 		err = c.watcher.Close()
 		c.watcher = nil
 	}
+
+	if c.envWatcher != nil {
+		c.envWatcher.Stop()
+		c.envWatcher = nil
+	}
+
 	return err
 }
 
@@ -288,6 +301,20 @@ func (c *Config) ReadINI(b []byte) error {
 	return nil
 }
 
+// ReadENV reads the config values from a byte array under ENV format.
+func (c *Config) ReadENV(b []byte) error {
+	var envmap, err = godotenv.Unmarshal(string(b))
+	if err != nil {
+		return ConfigError.New(err)
+	}
+
+	for k, v := range envmap {
+		c.Set(k, v, false)
+	}
+
+	return nil
+}
+
 // ReadBytes reads the config values from a bytes array under any format.
 func (c *Config) ReadBytes(format Format, b []byte) error {
 	switch format {
@@ -295,6 +322,8 @@ func (c *Config) ReadBytes(format Format, b []byte) error {
 		return c.ReadJSON(b)
 	case INI:
 		return c.ReadINI(b)
+	case ENV:
+		return c.ReadENV(b)
 	default:
 		return FormatError.New("unsupported format")
 	}
@@ -332,6 +361,27 @@ func (c *Config) ReadFile(filename string, watch bool) error {
 
 	if err = c.ReadBytes(fileFormat, data); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// LoadEnv loads all environment variables and watch for their changes every
+// duration. Set the duration as zero if no need to watch the change.
+func (c *Config) LoadEnv(d time.Duration) error {
+	var envs = os.Environ()
+	for i := range envs {
+		var key, value, found = strings.Cut(envs[i], "=")
+		if !found {
+			return FormatError.Newf("invalid environment variable %s", envs[i])
+		}
+		c.Set(key, value, false)
+	}
+
+	if d != 0 {
+		c.lock.Lock()
+		c.envWatcher = time.AfterFunc(d, func() { c.LoadEnv(d) })
+		c.lock.Unlock()
 	}
 
 	return nil

@@ -5,6 +5,8 @@ github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=
 github.com/go-ini/ini v1.67.0 h1:z6ZrTEZqSWOTyH2FlglNbNgARyHG8oLW9gMELqKr06A=
 github.com/go-ini/ini v1.67.0/go.mod h1:ByCAeIL28uOIIG0E3PJtZPDL8WnHpFKFOtgjp+3Ies8=
+github.com/joho/godotenv v1.4.0 h1:3l4+N6zfMWnkbPEXKng2o2/MR5mSwTrBih4ZEkkz1lg=
+github.com/joho/godotenv v1.4.0/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
@@ -16,8 +18,6 @@ github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKs
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/xybor-x/xycond v1.0.0 h1:RJippg8hc0/HcEerJQrddHok7iaZUyLGrjN6Pbpe8u8=
 github.com/xybor-x/xycond v1.0.0/go.mod h1:b/NXVIxFPWvGyHAAdkNooYSw9IpqF04VuW2+i7iE8sU=
-github.com/xybor-x/xyerror v1.0.0 h1:tFqmi+SOnNrUaL1FDzp5qr/Ed0SY0tUfm1inmFMrt7g=
-github.com/xybor-x/xyerror v1.0.0/go.mod h1:2P0SjxOPAkdllEpPhmlWYVOGKDVxzwl/RkmLcc2i9Os=
 github.com/xybor-x/xyerror v1.0.5 h1:SiC0OWcVDvb3MwLMTFWCvnrACYln3KbYkhr9nehtfV0=
 github.com/xybor-x/xyerror v1.0.5/go.mod h1:2P0SjxOPAkdllEpPhmlWYVOGKDVxzwl/RkmLcc2i9Os=
 github.com/xybor-x/xylock v0.0.1 h1:/LhbJb6WJkUW+xE4/bBpIC76BKrbgnayiId6LdouqUw=

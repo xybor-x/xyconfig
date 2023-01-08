@@ -1,3 +1,7 @@
+# v1.3.0 (Jan 9, 2023)
+
+1.  Allow reading environment variables from file or os.
+
 # v1.2.0 (Jan 8, 2023)
 
 1.  Allow converting config to map.

@@ -22,6 +22,7 @@ package xyconfig_test
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -150,6 +151,15 @@ func TestConfigReadByteINI(t *testing.T) {
 	xycond.ExpectTrue(cfg.MustGet("buzz.nil").IsNil()).Test(t)
 }
 
+func TestConfigReadByteENV(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	cfg.ReadBytes(xyconfig.ENV, []byte("fizz=bar\nbizz=bemm\nnil="))
+
+	xycond.ExpectEqual(cfg.MustGet("fizz").MustString(), "bar").Test(t)
+	xycond.ExpectEqual(cfg.MustGet("bizz").MustString(), "bemm").Test(t)
+	xycond.ExpectTrue(cfg.MustGet("nil").IsNil()).Test(t)
+}
+
 func TestConfigReadByteUnknown(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
 	var err = cfg.ReadBytes(xyconfig.UnknownFormat, []byte(""))
@@ -189,6 +199,20 @@ func TestConfigReadFileWithChange(t *testing.T) {
 
 	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "buzz"}`), 0644)
 	time.Sleep(time.Millisecond)
+	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "buzz").Test(t)
+}
+
+func TestConfigLoadEnvWithChange(t *testing.T) {
+	os.Setenv("foo", "bar")
+
+	var cfg = xyconfig.GetConfig(t.Name())
+	defer cfg.CloseWatcher()
+
+	cfg.LoadEnv(time.Millisecond)
+	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
+
+	os.Setenv("foo", "buzz")
+	time.Sleep(2 * time.Millisecond)
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "buzz").Test(t)
 }
 
