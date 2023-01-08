@@ -175,7 +175,7 @@ func TestConfigReadFileNotExist(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
 	var err = cfg.ReadFile("foo.json", false)
 
-	xycond.ExpectError(err, xyconfig.BaseError).Test(t)
+	xycond.ExpectError(err, xyconfig.ConfigError).Test(t)
 }
 
 func TestConfigReadFileWithChange(t *testing.T) {
