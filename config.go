@@ -22,8 +22,10 @@ package xyconfig
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
@@ -313,21 +315,23 @@ func (c *Config) ReadFile(filename string, watch bool) error {
 		}
 	}
 
+	if watch {
+		if err := c.watchFile(filename); err != nil {
+			return err
+		}
+	}
+
 	if fileFormat == UnknownFormat {
 		return ExtensionError.Newf("unknown extension: %s", filename)
 	}
 
 	var data, err = ioutil.ReadFile(filename)
-	if err != nil {
-		return BaseError.New(err)
+	if err != nil && (!errors.Is(err, os.ErrNotExist) || !watch) {
+		return ConfigError.New(err)
 	}
 
 	if err = c.ReadBytes(fileFormat, data); err != nil {
 		return err
-	}
-
-	if watch {
-		return c.watchFile(filename)
 	}
 
 	return nil
@@ -378,7 +382,7 @@ func (c *Config) GetDefault(key string, def any) Value {
 func (c *Config) initWatcher() error {
 	var watcher, err = fsnotify.NewWatcher()
 	if err != nil {
-		return BaseError.New(err)
+		return ConfigError.New(err)
 	}
 
 	c.lock.WLockFunc(func() {
@@ -436,7 +440,7 @@ func (c *Config) watchFile(filename string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.watcher.Add(filename); err != nil {
-		return BaseError.New(err)
+		return ConfigError.New(err)
 	}
 
 	return nil
