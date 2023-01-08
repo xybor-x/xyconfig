@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Value instance represents for values in Config.
@@ -83,6 +84,58 @@ func (v Value) MustInt() int {
 		panic(CastError.Newf("got a %T, not int", v.value))
 	}
 	return i
+}
+
+// AsDuration returns the value as time.Duration. The latter return value is
+// false if failed to cast.
+//
+// For example: 1s (1 second), 2m (2 minutes), 3h (3 hours), 4d (4 days),
+// 5w (weeks).
+func (v Value) AsDuration() (time.Duration, bool) {
+	switch t := v.value.(type) {
+	case string:
+		var n = len(t)
+		var v, err = strconv.Atoi(t[:n-1])
+		if err != nil && n > 1 {
+			return 0, false
+		}
+		switch t[n-1] {
+		case 'w':
+			return time.Duration(v) * 7 * 24 * time.Hour, true
+		case 'd':
+			return time.Duration(v) * 24 * time.Hour, true
+		case 'h':
+			return time.Duration(v) * time.Hour, true
+		case 'm':
+			return time.Duration(v) * time.Minute, true
+		case 's':
+			return time.Duration(v) * time.Second, true
+		default:
+			var v, err = strconv.Atoi(t)
+			if err != nil {
+				return 0, false
+			}
+			return time.Duration(v) * time.Second, true
+		}
+	case int:
+		return time.Duration(t) * time.Second, true
+	case time.Duration:
+		return t, true
+	}
+
+	return 0, false
+}
+
+// MustDuration returns the value as time.Duration. It panics if failed to cast.
+//
+// For example: 1s (1 second), 2m (2 minutes), 3h (3 hours), 4d (4 days),
+// 5w (weeks).
+func (v Value) MustDuration() time.Duration {
+	var d, ok = v.AsDuration()
+	if !ok {
+		panic(CastError.Newf("got a %T, not time.Duration", v.value))
+	}
+	return d
 }
 
 // AsFloat returns the value as float64. The latter return value is false if

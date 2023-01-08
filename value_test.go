@@ -22,6 +22,7 @@ package xyconfig_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/xybor-x/xycond"
 	"github.com/xybor-x/xyconfig"
@@ -90,6 +91,80 @@ func TestValueAsInt(t *testing.T) {
 	i, ok = cfg.MustGet("float").AsInt()
 	xycond.ExpectTrue(ok).Test(t)
 	xycond.ExpectEqual(i, 1).Test(t)
+}
+
+func TestValueMustDuration(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	cfg.Set("foo", 1, true)
+	cfg.Set("bar", "string", true)
+	cfg.Set("buzz", "1", false)
+	cfg.Set("bizz", "string", false)
+	cfg.Set("1s", "1s", false)
+	cfg.Set("1m", "1m", false)
+	cfg.Set("1h", "1h", false)
+	cfg.Set("1d", "1d", false)
+	cfg.Set("1w", "1w", false)
+
+	xycond.ExpectEqual(cfg.MustGet("foo").MustDuration(), time.Second).Test(t)
+	xycond.ExpectPanic(xyconfig.CastError, func() { cfg.MustGet("bar").MustDuration() }).Test(t)
+	xycond.ExpectEqual(cfg.MustGet("buzz").MustDuration(), time.Second).Test(t)
+	xycond.ExpectPanic(xyconfig.CastError, func() { cfg.MustGet("bizz").MustDuration() }).Test(t)
+	xycond.ExpectEqual(cfg.MustGet("1s").MustDuration(), time.Second).Test(t)
+	xycond.ExpectEqual(cfg.MustGet("1m").MustDuration(), time.Minute).Test(t)
+	xycond.ExpectEqual(cfg.MustGet("1h").MustDuration(), time.Hour).Test(t)
+	xycond.ExpectEqual(cfg.MustGet("1d").MustDuration(), 24*time.Hour).Test(t)
+	xycond.ExpectEqual(cfg.MustGet("1w").MustDuration(), 7*24*time.Hour).Test(t)
+}
+
+func TestValueAsDuration(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	cfg.Set("foo", 1, true)
+	cfg.Set("bar", "string", true)
+	cfg.Set("buzz", "1", false)
+	cfg.Set("bizz", "string", false)
+	cfg.Set("float", 1.0, false)
+	cfg.Set("1s", "1s", false)
+	cfg.Set("1m", "1m", false)
+	cfg.Set("1h", "1h", false)
+	cfg.Set("1d", "1d", false)
+	cfg.Set("1w", "1w", false)
+
+	var d time.Duration
+	var ok bool
+
+	d, ok = cfg.MustGet("foo").AsDuration()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(d, time.Second)
+
+	_, ok = cfg.MustGet("bar").AsDuration()
+	xycond.ExpectFalse(ok).Test(t)
+
+	d, ok = cfg.MustGet("buzz").AsDuration()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(d, time.Second)
+
+	_, ok = cfg.MustGet("bizz").AsDuration()
+	xycond.ExpectFalse(ok).Test(t)
+
+	d, ok = cfg.MustGet("1s").AsDuration()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(d, time.Second).Test(t)
+
+	d, ok = cfg.MustGet("1m").AsDuration()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(d, time.Minute).Test(t)
+
+	d, ok = cfg.MustGet("1h").AsDuration()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(d, time.Hour).Test(t)
+
+	d, ok = cfg.MustGet("1d").AsDuration()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(d, 24*time.Hour).Test(t)
+
+	d, ok = cfg.MustGet("1w").AsDuration()
+	xycond.ExpectTrue(ok).Test(t)
+	xycond.ExpectEqual(d, 7*24*time.Hour).Test(t)
 }
 
 func TestValueMustFloat(t *testing.T) {
