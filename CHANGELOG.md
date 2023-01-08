@@ -1,3 +1,7 @@
+# v1.2.0 (Jan 8, 2023)
+
+1.  Allow converting config to map.
+
 # v1.1.1 (Jan 8, 2023)
 
 1.  Allow watching file even if the file didn't exist.
