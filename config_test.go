@@ -229,3 +229,12 @@ func TestConfigGetDefault(t *testing.T) {
 	xycond.ExpectEqual(cfg.GetDefault("foo", "buzzz").MustString(), "bar").Test(t)
 	xycond.ExpectEqual(cfg.GetDefault("bar", "buzzz").MustString(), "buzzz").Test(t)
 }
+
+func TestConfigToMap(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	cfg.Set("foo", "bar", true)
+	cfg.Set("subcfg.buzz", "bar", false)
+
+	xycond.ExpectEqual(cfg.ToMap()["foo"], "bar").Test(t)
+	xycond.ExpectIn("buzz", cfg.ToMap()["subcfg"]).Test(t)
+}

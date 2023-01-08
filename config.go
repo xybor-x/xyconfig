@@ -377,6 +377,19 @@ func (c *Config) GetDefault(key string, def any) Value {
 	return v
 }
 
+// ToMap converts current config to map.
+func (c *Config) ToMap() map[string]any {
+	var result = make(map[string]any)
+	for k, v := range c.config {
+		if c, ok := v.AsConfig(); ok {
+			result[k] = c.ToMap()
+		} else {
+			result[k] = v.value
+		}
+	}
+	return result
+}
+
 // initWatcher assigns a new watcher to Config. It also run a goroutine for
 // handling watcher events.
 func (c *Config) initWatcher() error {
