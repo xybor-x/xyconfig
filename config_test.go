@@ -188,6 +188,13 @@ func TestConfigReadFileNotExist(t *testing.T) {
 	xycond.ExpectError(err, xyconfig.ConfigError).Test(t)
 }
 
+func TestConfigReadFileNotExistWithWatching(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	var err = cfg.ReadFile("foo.json", true)
+
+	xycond.ExpectNil(err).Test(t)
+}
+
 func TestConfigReadFileWithChange(t *testing.T) {
 	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "bar"}`), 0644)
 
