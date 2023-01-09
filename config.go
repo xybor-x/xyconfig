@@ -22,7 +22,6 @@ package xyconfig
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -354,12 +353,11 @@ func (c *Config) ReadFile(filename string, watch bool) error {
 		return ExtensionError.Newf("unknown extension: %s", filename)
 	}
 
-	var data, err = ioutil.ReadFile(filename)
-	if err != nil && (!errors.Is(err, os.ErrNotExist) || !watch) {
-		return ConfigError.New(err)
-	}
-
-	if err = c.ReadBytes(fileFormat, data); err != nil {
+	if data, err := ioutil.ReadFile(filename); err != nil {
+		if !os.IsNotExist(err) || !watch {
+			return ConfigError.New(err)
+		}
+	} else if err := c.ReadBytes(fileFormat, data); err != nil {
 		return err
 	}
 
@@ -502,8 +500,25 @@ func (c *Config) watchFile(filename string) error {
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	// Create the file if it does not exist, so the watcher will not raise an
+	// exception.
+	var ferr error
+	if _, ferr = os.Open(filename); os.IsNotExist(ferr) {
+		if _, err := os.OpenFile(filename, os.O_CREATE, 0666); err != nil {
+			return err
+		}
+	}
+
 	if err := c.watcher.Add(filename); err != nil {
 		return ConfigError.New(err)
+	}
+
+	// Remove the file after adding to watcher.
+	if os.IsNotExist(ferr) {
+		if err := os.Remove(filename); err != nil {
+			return err
+		}
 	}
 
 	return nil
