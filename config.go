@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -505,6 +506,12 @@ func (c *Config) watchFile(filename string) error {
 	// exception.
 	var ferr error
 	if _, ferr = os.Open(filename); os.IsNotExist(ferr) {
+		var dir = filepath.Dir(filename)
+		fmt.Println(dir)
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			return err
+		}
+
 		if _, err := os.OpenFile(filename, os.O_CREATE, 0666); err != nil {
 			return err
 		}

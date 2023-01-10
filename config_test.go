@@ -194,6 +194,12 @@ func TestConfigReadFileNotExistWithWatching(t *testing.T) {
 
 	xycond.ExpectNil(err).Test(t)
 }
+func TestConfigReadFileButDirNotExistWithWatching(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	var err = cfg.ReadFile("config/foo.json", true)
+
+	xycond.ExpectNil(err).Test(t)
+}
 
 func TestConfigReadFileWithChange(t *testing.T) {
 	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "bar"}`), 0644)
@@ -219,7 +225,7 @@ func TestConfigLoadEnvWithChange(t *testing.T) {
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
 
 	os.Setenv("foo", "buzz")
-	time.Sleep(2 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "buzz").Test(t)
 }
 

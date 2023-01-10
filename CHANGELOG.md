@@ -1,6 +1,10 @@
+# v1.3.2 (Jan 11, 2023)
+
+1. Fix read non-existed directory in watching mode.
+
 # v1.3.1 (Jan 9, 2023)
 
-1. Fix read non-existed file in non-watch mode.
+1. Fix read non-existed file in non-watching mode.
 
 # v1.3.0 (Jan 9, 2023)
 
@@ -12,7 +16,7 @@
 
 # v1.1.1 (Jan 8, 2023)
 
-1. Allow watching file even if the file didn't exist.
+1.  Allow watching file even if the file didn't exist.
 
 # v1.1.0 (Jan 8, 2023)
 
