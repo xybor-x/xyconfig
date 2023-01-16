@@ -23,13 +23,10 @@ package xyconfig
 import "github.com/xybor-x/xyerror"
 
 // ConfigError represents for all error in xyconfig.
-var ConfigError = xyerror.NewException("BaseError")
+var ConfigError = xyerror.NewException("ConfigError")
 
 // CastError happens when the value cannot cast to a specific type.
 var CastError = ConfigError.NewException("CastError")
-
-// ExtensionError represents for file extension error.
-var ExtensionError = ConfigError.NewException("ExtensionError")
 
 // FormatError represents for file format error.
 var FormatError = ConfigError.NewException("FormatError")

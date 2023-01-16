@@ -1,3 +1,6 @@
+# v1.4.0 (Jan 16, 2023)
+1. Support AWS S3.
+
 # v1.3.2 (Jan 11, 2023)
 
 1. Fix read non-existed directory in watching mode.
