@@ -167,18 +167,11 @@ func TestConfigReadByteUnknown(t *testing.T) {
 	xycond.ExpectError(err, xyconfig.FormatError).Test(t)
 }
 
-func TestConfigRead(t *testing.T) {
-	var cfg = xyconfig.GetConfig(t.Name())
-	var err = cfg.Read(xyconfig.UnknownFormat, "")
-
-	xycond.ExpectError(err, xyconfig.FormatError).Test(t)
-}
-
 func TestConfigReadFileUnknownExt(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
 	var err = cfg.ReadFile("foo.bar", false)
 
-	xycond.ExpectError(err, xyconfig.ExtensionError).Test(t)
+	xycond.ExpectError(err, xyconfig.FormatError).Test(t)
 }
 
 func TestConfigReadFileNotExist(t *testing.T) {
@@ -213,6 +206,36 @@ func TestConfigReadFileWithChange(t *testing.T) {
 	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "buzz"}`), 0644)
 	time.Sleep(time.Millisecond)
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "buzz").Test(t)
+}
+
+func TestConfigReadS3UnknownExt(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	var err = cfg.ReadS3("s3://bucket/abc.unk", 0)
+	xycond.ExpectError(err, xyconfig.FormatError).Test(t)
+}
+
+func TestConfigReadS3InvalidPrefix(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	var err = cfg.ReadS3("s3:/bucket/abc.ini", 0)
+	xycond.ExpectError(err, xyconfig.FormatError).Test(t)
+}
+
+func TestConfigReadS3InvalidFormat(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	var err = cfg.ReadS3("s3://abc.ini", 0)
+	xycond.ExpectError(err, xyconfig.FormatError).Test(t)
+}
+
+func TestConfigReadInvalidAndWatch(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	var err = cfg.ReadS3("s3://bucket/abc.ini", time.Second)
+	xycond.ExpectNil(err).Test(t)
+}
+
+func TestConfigReadInvalidAndNotWatch(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	var err = cfg.ReadS3("s3://bucket/abc.ini", 0)
+	xycond.ExpectError(err, xyconfig.ConfigError).Test(t)
 }
 
 func TestConfigLoadEnvWithChange(t *testing.T) {
@@ -274,4 +297,19 @@ func TestConfigToMap(t *testing.T) {
 
 	xycond.ExpectEqual(cfg.ToMap()["foo"], "bar").Test(t)
 	xycond.ExpectIn("buzz", cfg.ToMap()["subcfg"]).Test(t)
+}
+
+func TestConfigUnWatch(t *testing.T) {
+	ioutil.WriteFile(t.Name()+".json", []byte(`{"error":""}`), 0644)
+	var cfg = xyconfig.GetConfig(t.Name())
+
+	cfg.SetWatchInterval(time.Second)
+
+	xycond.ExpectNil(cfg.Read("env")).Test(t)
+	xycond.ExpectNil(cfg.Read(t.Name() + ".json")).Test(t)
+	xycond.ExpectError(cfg.Read(""), xyconfig.FormatError).Test(t)
+
+	xycond.ExpectNil(cfg.UnWatch("env")).Test(t)
+	xycond.ExpectNil(cfg.UnWatch(t.Name() + ".json")).Test(t)
+	xycond.ExpectError(cfg.UnWatch("foo.json"), xyconfig.ConfigError).Test(t)
 }

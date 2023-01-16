@@ -19,13 +19,18 @@ configuration files.
 var config = xyconfig.GetConfig("app")
 
 // Read config from a string.
-config.Read(xyconfig.JSON, `{"general": {"timeout": 3.14}}`)
+config.ReadBytes(xyconfig.JSON, []byte(`{"general": {"timeout": 3.14}}`))
 
-// Read config from default.ini but do not watch the file.
-config.ReadFile("config/default.ini", false)
+// Read from files.
+config.Read("config/default.ini")
+config.Read("config/override.yml")
+config.Read(".env")
 
-// Read config from override.ini and watch the file change.
-config.ReadFile("config/override.yml", true)
+// Load global environment variables to config files.
+config.Read("env")
+
+// Read config from aws s3 bucket.
+config.Read("s3://bucket/item.ini")
 
 fmt.Println(config.MustGet("general.timeout").MustFloat())
 

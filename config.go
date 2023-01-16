@@ -29,6 +29,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-ini/ini"
 	"github.com/joho/godotenv"
@@ -87,8 +91,12 @@ type Config struct {
 	// watcher tracks changes of files.
 	watcher *fsnotify.Watcher
 
-	// envWatcher tracks the waching of environment variables.
-	envWatcher *time.Timer
+	// timerWatchers tracks the waching of non-inotify instances.
+	timerWatchers map[string]*time.Timer
+
+	// watchInterval is used to choose the time interval to watch changes when
+	// using Read method.
+	watchInterval time.Duration
 
 	// lock avoids race condition.
 	lock *xylock.RWLock
@@ -124,9 +132,11 @@ func GetConfig(name string) *Config {
 	}
 
 	var cfg = &Config{
-		config: make(map[string]Value),
-		hook:   make(map[string]func(Event)),
-		lock:   &xylock.RWLock{},
+		config:        make(map[string]Value),
+		hook:          make(map[string]func(Event)),
+		timerWatchers: make(map[string]*time.Timer),
+		watchInterval: 5 * time.Minute,
+		lock:          &xylock.RWLock{},
 	}
 
 	if name == "" {
@@ -151,22 +161,41 @@ func (c *Config) CloseWatcher() error {
 		c.watcher = nil
 	}
 
-	if c.envWatcher != nil {
-		c.envWatcher.Stop()
-		c.envWatcher = nil
+	for k, w := range c.timerWatchers {
+		w.Stop()
+		delete(c.timerWatchers, k)
 	}
 
 	return err
 }
 
-// UnWatch removes a filename from the watcher.
+// SetWatchInterval sets the time interval to watch the change when using Read()
+// method.
+func (c *Config) SetWatchInterval(d time.Duration) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.watchInterval = d
+}
+
+// UnWatch removes a filename from the watcher. This method also works with s3
+// url. Put "env" as parameter if you want to stop watching environment
+// variables of LoadEnv().
 func (c *Config) UnWatch(filename string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if c.watcher != nil {
-		return c.watcher.Remove(filename)
+	if w, ok := c.timerWatchers[filename]; ok {
+		w.Stop()
+		delete(c.timerWatchers, filename)
+		return nil
 	}
+
+	if c.watcher != nil {
+		if err := c.watcher.Remove(filename); err != nil {
+			return ConfigError.New(err)
+		}
+	}
+
 	return nil
 }
 
@@ -329,11 +358,6 @@ func (c *Config) ReadBytes(format Format, b []byte) error {
 	}
 }
 
-// Read reads the config values from a string under any format.
-func (c *Config) Read(format Format, s string) error {
-	return c.ReadBytes(format, []byte(s))
-}
-
 // ReadFile reads the config values from a file. If watch is true, it will
 // reload config when the file is changed.
 func (c *Config) ReadFile(filename string, watch bool) error {
@@ -344,14 +368,14 @@ func (c *Config) ReadFile(filename string, watch bool) error {
 		}
 	}
 
+	if fileFormat == UnknownFormat {
+		return FormatError.Newf("unknown extension: %s", filename)
+	}
+
 	if watch {
 		if err := c.watchFile(filename); err != nil {
 			return err
 		}
-	}
-
-	if fileFormat == UnknownFormat {
-		return ExtensionError.Newf("unknown extension: %s", filename)
 	}
 
 	if data, err := ioutil.ReadFile(filename); err != nil {
@@ -363,6 +387,66 @@ func (c *Config) ReadFile(filename string, watch bool) error {
 	}
 
 	return nil
+}
+
+// ReadS3 reads a file from AWS S3 bucket and watch for their changes every
+// duration. Set the duration as zero if no need to watch the change.
+//
+// You must provide the aws credentials in ~/.aws/credentials. The AWS_REGION
+// is required.
+func (c *Config) ReadS3(url string, d time.Duration) error {
+	var fileFormat = UnknownFormat
+	for ext, format := range extensions {
+		if strings.HasSuffix(url, ext) {
+			fileFormat = format
+		}
+	}
+
+	if fileFormat == UnknownFormat {
+		return FormatError.Newf("unknown extension: %s", url)
+	}
+
+	if !strings.HasPrefix(url, "s3://") {
+		return FormatError.Newf("can not parse the s3 url %s", url)
+	}
+
+	var path = url[5:]
+	var bucket, item, found = strings.Cut(path, "/")
+	if !found {
+		return FormatError.Newf("not found item in path %s", path)
+	}
+
+	var sess, err = session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	})
+
+	if err != nil {
+		return ConfigError.New(err)
+	}
+
+	var downloader = s3manager.NewDownloader(sess)
+	var buf = aws.NewWriteAtBuffer([]byte{})
+	_, err = downloader.Download(
+		buf,
+		&s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(item),
+		})
+
+	if d != 0 {
+		c.lock.Lock()
+		c.timerWatchers[url] = time.AfterFunc(d, func() { c.ReadS3(url, d) })
+		c.lock.Unlock()
+	}
+
+	if err != nil {
+		if d == 0 {
+			return ConfigError.New(err)
+		}
+		return nil
+	}
+
+	return c.ReadBytes(fileFormat, buf.Bytes())
 }
 
 // LoadEnv loads all environment variables and watch for their changes every
@@ -379,11 +463,29 @@ func (c *Config) LoadEnv(d time.Duration) error {
 
 	if d != 0 {
 		c.lock.Lock()
-		c.envWatcher = time.AfterFunc(d, func() { c.LoadEnv(d) })
+		c.timerWatchers["env"] = time.AfterFunc(d, func() { c.LoadEnv(d) })
 		c.lock.Unlock()
 	}
 
 	return nil
+}
+
+// Read reads the config with any instance. If the instance is s3 url or
+// environment variable, the watchInterval is used to choose the time interval
+// for watching changes. If the instance is file path, it will watch the change
+// if watchInterval > 0.
+func (c *Config) Read(path string) error {
+	switch {
+	case path == "env":
+		return c.LoadEnv(c.watchInterval)
+	case strings.HasPrefix(path, "s3://"):
+		return c.ReadS3(path, c.watchInterval)
+	default:
+		if c.watchInterval > 0 {
+			return c.ReadFile(path, true)
+		}
+		return c.ReadFile(path, false)
+	}
 }
 
 // Get returns the value assigned with the key. The latter returned value is
