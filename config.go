@@ -609,7 +609,6 @@ func (c *Config) watchFile(filename string) error {
 	var ferr error
 	if _, ferr = os.Open(filename); os.IsNotExist(ferr) {
 		var dir = filepath.Dir(filename)
-		fmt.Println(dir)
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			return err
 		}
