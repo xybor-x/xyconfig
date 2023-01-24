@@ -1,4 +1,4 @@
-# v2.0.0 (Jan 25, 2023)
+# v1.5.0 (Jan 25, 2023)
 
 1. Allow determining the priority of files.
 
