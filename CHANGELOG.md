@@ -1,3 +1,7 @@
+# v1.4.1 (Jan 24, 2023)
+
+1. String should be changed to array without brackets.
+
 # v1.4.0 (Jan 16, 2023)
 1. Support AWS S3.
 
