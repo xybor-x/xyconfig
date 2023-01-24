@@ -22,7 +22,7 @@
 *.prof
 
 # Test xyconfig
-Test*.json
-Test*.ini
+*Test*.json
+*Test*.ini
 Benchmark*.json
 Benchmark*.ini

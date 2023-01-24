@@ -26,6 +26,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -51,6 +53,8 @@ const (
 	INI
 	ENV
 )
+
+const maxPriority = 100
 
 var loggerName = "xybor.xyplatform.xyconfig"
 var logger = xylog.GetLogger(loggerName)
@@ -203,9 +207,9 @@ func (c *Config) UnWatch(filename string) error {
 // create a new one, otherwise, it overrides the current value.
 //
 // The return value says if a hook function is executed for this change.
-func (c *Config) Set(key string, value any, strict bool) bool {
+func (c *Config) Set(key string, value any, priority int, strict bool) bool {
 	var old, ok = c.Get(key)
-	if ok && old.value == value {
+	if ok && (old.value == value || old.priority > priority) {
 		return false
 	}
 
@@ -215,7 +219,7 @@ func (c *Config) Set(key string, value any, strict bool) bool {
 	var before, after, found = strings.Cut(key, ".")
 	var watched = false
 	if !found {
-		c.config[key] = Value{value: value, strict: strict}
+		c.config[key] = Value{value: value, priority: priority, strict: strict}
 	} else {
 		if _, ok := c.config[before]; !ok {
 			c.config[before] = Value{value: GetConfig(c.name + "." + before), strict: strict}
@@ -225,7 +229,7 @@ func (c *Config) Set(key string, value any, strict bool) bool {
 			c.config[before] = Value{value: GetConfig(c.name + "." + before), strict: strict}
 		}
 
-		watched = c.config[before].MustConfig().Set(after, value, strict)
+		watched = c.config[before].MustConfig().Set(after, value, priority, strict)
 	}
 
 	if !watched {
@@ -242,7 +246,7 @@ func (c *Config) Set(key string, value any, strict bool) bool {
 		}
 
 		if hook != nil {
-			hook(Event{Old: old, New: Value{value, strict}, Key: c.name + "." + key})
+			hook(Event{Old: old, New: Value{value: value, strict: strict}, Key: c.name + "." + key})
 			return true
 		}
 	}
@@ -286,17 +290,17 @@ func (c *Config) AddHook(key string, f func(e Event)) {
 
 // ReadMap reads the config values from a map. If strict is false and the values
 // of map are strings, it allows casting them to other types.
-func (c *Config) ReadMap(m map[string]any) error {
+func (c *Config) ReadMap(priority int, m map[string]any) error {
 	for k, v := range m {
 		switch t := v.(type) {
 		case map[string]any:
 			var cfg = GetConfig(c.name + "." + k)
-			if err := cfg.ReadMap(t); err != nil {
+			if err := cfg.ReadMap(priority, t); err != nil {
 				return err
 			}
-			c.Set(k, cfg, true)
+			c.Set(k, cfg, priority, true)
 		default:
-			c.Set(k, t, true)
+			c.Set(k, t, priority, true)
 		}
 	}
 
@@ -304,18 +308,18 @@ func (c *Config) ReadMap(m map[string]any) error {
 }
 
 // ReadJSON reads the config values from a byte array under JSON format.
-func (c *Config) ReadJSON(b []byte) error {
+func (c *Config) ReadJSON(priority int, b []byte) error {
 	var m map[string]any
 	var err = json.Unmarshal(b, &m)
 	if err != nil {
 		return xyerror.ValueError.Newf("cannot parse json data (%v)", err)
 	}
 
-	return c.ReadMap(m)
+	return c.ReadMap(priority, m)
 }
 
 // ReadINI reads the config values from a byte array under INI format.
-func (c *Config) ReadINI(b []byte) error {
+func (c *Config) ReadINI(priority int, b []byte) error {
 	var cfg, err = ini.Load(b)
 	if err != nil {
 		return xyerror.ValueError.New(err)
@@ -323,7 +327,7 @@ func (c *Config) ReadINI(b []byte) error {
 
 	for _, section := range cfg.Sections() {
 		for _, key := range section.Keys() {
-			c.Set(section.Name()+"."+key.Name(), key.Value(), false)
+			c.Set(section.Name()+"."+key.Name(), key.Value(), priority, false)
 		}
 	}
 
@@ -331,28 +335,28 @@ func (c *Config) ReadINI(b []byte) error {
 }
 
 // ReadENV reads the config values from a byte array under ENV format.
-func (c *Config) ReadENV(b []byte) error {
+func (c *Config) ReadENV(priority int, b []byte) error {
 	var envmap, err = godotenv.Unmarshal(string(b))
 	if err != nil {
 		return ConfigError.New(err)
 	}
 
 	for k, v := range envmap {
-		c.Set(k, v, false)
+		c.Set(k, v, priority, false)
 	}
 
 	return nil
 }
 
 // ReadBytes reads the config values from a bytes array under any format.
-func (c *Config) ReadBytes(format Format, b []byte) error {
+func (c *Config) ReadBytes(format Format, priority int, b []byte) error {
 	switch format {
 	case JSON:
-		return c.ReadJSON(b)
+		return c.ReadJSON(priority, b)
 	case INI:
-		return c.ReadINI(b)
+		return c.ReadINI(priority, b)
 	case ENV:
-		return c.ReadENV(b)
+		return c.ReadENV(priority, b)
 	default:
 		return FormatError.New("unsupported format")
 	}
@@ -382,8 +386,10 @@ func (c *Config) ReadFile(filename string, watch bool) error {
 		if !os.IsNotExist(err) || !watch {
 			return ConfigError.New(err)
 		}
-	} else if err := c.ReadBytes(fileFormat, data); err != nil {
-		return err
+	} else {
+		if err := c.ReadBytes(fileFormat, getPriority(filename), data); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -446,7 +452,7 @@ func (c *Config) ReadS3(url string, d time.Duration) error {
 		return nil
 	}
 
-	return c.ReadBytes(fileFormat, buf.Bytes())
+	return c.ReadBytes(fileFormat, getPriority(url), buf.Bytes())
 }
 
 // LoadEnv loads all environment variables and watch for their changes every
@@ -458,7 +464,7 @@ func (c *Config) LoadEnv(d time.Duration) error {
 		if !found {
 			return FormatError.Newf("invalid environment variable %s", envs[i])
 		}
-		c.Set(key, value, false)
+		c.Set(key, value, maxPriority, false)
 	}
 
 	if d != 0 {
@@ -630,4 +636,34 @@ func (c *Config) watchFile(filename string) error {
 	}
 
 	return nil
+}
+
+// getPriority extracts the priority from filename.
+func getPriority(filename string) int {
+	var exp, err = regexp.Compile(`^(\d+)-\w+.(env|ini|json)$`)
+	if err != nil {
+		return 0
+	}
+
+	var priority = 0
+	if b := exp.FindAllSubmatch([]byte(filepath.Base(filename)), -1); b != nil {
+		priority, err = strconv.Atoi(string(b[0][1]))
+		if err != nil {
+			return 0
+		}
+	}
+
+	if priority > maxPriority {
+		logger.Event("prioriy-too-high").
+			Field("priority", priority).
+			Field("recommend-max-value", maxPriority).Warning()
+	}
+
+	if priority < 0 {
+		logger.Event("prioriy-too-low").
+			Field("priority", priority).
+			Field("recommend-min-value", 0).Warning()
+	}
+
+	return priority
 }

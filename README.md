@@ -18,19 +18,19 @@ configuration files.
 ```golang
 var config = xyconfig.GetConfig("app")
 
-// Read config from a string.
-config.ReadBytes(xyconfig.JSON, []byte(`{"general": {"timeout": 3.14}}`))
+// Read config from a string with the priority is 10.
+config.ReadBytes(xyconfig.JSON, 10, []byte(`{"general": {"timeout": 3.14}}`))
 
 // Read from files.
-config.Read("config/default.ini")
-config.Read("config/override.yml")
-config.Read(".env")
+config.Read("config/10-default.ini")
+config.Read("config/20-override.yml")
+config.Read("10-dev.env")
 
 // Load global environment variables to config files.
 config.Read("env")
 
 // Read config from aws s3 bucket.
-config.Read("s3://bucket/item.ini")
+config.Read("s3://bucket/30-item.ini")
 
 fmt.Println(config.MustGet("general.timeout").MustFloat())
 
