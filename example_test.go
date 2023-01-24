@@ -11,7 +11,7 @@ func ExampleConfig() {
 	var config = xyconfig.GetConfig("example")
 
 	// Read config from a map.
-	config.ReadMap(map[string]any{
+	config.ReadMap(0, map[string]any{
 		"general": map[string]any{
 			"timeout": 3.14,
 		},
@@ -19,7 +19,7 @@ func ExampleConfig() {
 
 	// It's also ok if you want to read from string, byte array, or file with
 	// supported formats.
-	config.ReadJSON([]byte(`{"system": "linux"}`))
+	config.ReadJSON(0, []byte(`{"system": "linux"}`))
 
 	// Read the config from file.
 	// config.ReadFile("foo.json", false)

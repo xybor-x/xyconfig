@@ -30,7 +30,7 @@ import (
 
 func TestValueMustConfig(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo.bar", "bar", true)
+	cfg.Set("foo.bar", "bar", 0, true)
 
 	xycond.ExpectEqual(
 		cfg.MustGet("foo").MustConfig(), xyconfig.GetConfig(t.Name()+".foo")).Test(t)
@@ -41,7 +41,7 @@ func TestValueMustConfig(t *testing.T) {
 
 func TestValueAsConfig(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo.bar", "bar", true)
+	cfg.Set("foo.bar", "bar", 0, true)
 	var c, ok = cfg.MustGet("foo").AsConfig()
 	xycond.ExpectTrue(ok).Test(t)
 	xycond.ExpectEqual(c, xyconfig.GetConfig(t.Name()+".foo")).Test(t)
@@ -52,10 +52,10 @@ func TestValueAsConfig(t *testing.T) {
 
 func TestValueMustInt(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", 1, true)
-	cfg.Set("bar", "string", true)
-	cfg.Set("buzz", "1", false)
-	cfg.Set("bizz", "string", false)
+	cfg.Set("foo", 1, 0, true)
+	cfg.Set("bar", "string", 0, true)
+	cfg.Set("buzz", "1", 0, false)
+	cfg.Set("bizz", "string", 0, false)
 
 	xycond.ExpectEqual(cfg.MustGet("foo").MustInt(), 1).Test(t)
 	xycond.ExpectPanic(xyconfig.CastError, func() { cfg.MustGet("bar").MustInt() }).Test(t)
@@ -65,11 +65,11 @@ func TestValueMustInt(t *testing.T) {
 
 func TestValueAsInt(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", 1, true)
-	cfg.Set("bar", "string", true)
-	cfg.Set("buzz", "1", false)
-	cfg.Set("bizz", "string", false)
-	cfg.Set("float", 1.0, false)
+	cfg.Set("foo", 1, 0, true)
+	cfg.Set("bar", "string", 0, true)
+	cfg.Set("buzz", "1", 0, false)
+	cfg.Set("bizz", "string", 0, false)
+	cfg.Set("float", 1.0, 0, false)
 
 	var i int
 	var ok bool
@@ -95,15 +95,15 @@ func TestValueAsInt(t *testing.T) {
 
 func TestValueMustDuration(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", 1, true)
-	cfg.Set("bar", "string", true)
-	cfg.Set("buzz", "1", false)
-	cfg.Set("bizz", "string", false)
-	cfg.Set("1s", "1s", false)
-	cfg.Set("1m", "1m", false)
-	cfg.Set("1h", "1h", false)
-	cfg.Set("1d", "1d", false)
-	cfg.Set("1w", "1w", false)
+	cfg.Set("foo", 1, 0, true)
+	cfg.Set("bar", "string", 0, true)
+	cfg.Set("buzz", "1", 0, false)
+	cfg.Set("bizz", "string", 0, false)
+	cfg.Set("1s", "1s", 0, false)
+	cfg.Set("1m", "1m", 0, false)
+	cfg.Set("1h", "1h", 0, false)
+	cfg.Set("1d", "1d", 0, false)
+	cfg.Set("1w", "1w", 0, false)
 
 	xycond.ExpectEqual(cfg.MustGet("foo").MustDuration(), time.Second).Test(t)
 	xycond.ExpectPanic(xyconfig.CastError, func() { cfg.MustGet("bar").MustDuration() }).Test(t)
@@ -118,16 +118,16 @@ func TestValueMustDuration(t *testing.T) {
 
 func TestValueAsDuration(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", 1, true)
-	cfg.Set("bar", "string", true)
-	cfg.Set("buzz", "1", false)
-	cfg.Set("bizz", "string", false)
-	cfg.Set("float", 1.0, false)
-	cfg.Set("1s", "1s", false)
-	cfg.Set("1m", "1m", false)
-	cfg.Set("1h", "1h", false)
-	cfg.Set("1d", "1d", false)
-	cfg.Set("1w", "1w", false)
+	cfg.Set("foo", 1, 0, true)
+	cfg.Set("bar", "string", 0, true)
+	cfg.Set("buzz", "1", 0, false)
+	cfg.Set("bizz", "string", 0, false)
+	cfg.Set("float", 1.0, 0, false)
+	cfg.Set("1s", "1s", 0, false)
+	cfg.Set("1m", "1m", 0, false)
+	cfg.Set("1h", "1h", 0, false)
+	cfg.Set("1d", "1d", 0, false)
+	cfg.Set("1w", "1w", 0, false)
 
 	var d time.Duration
 	var ok bool
@@ -169,11 +169,11 @@ func TestValueAsDuration(t *testing.T) {
 
 func TestValueMustFloat(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", 1, true)
-	cfg.Set("fizz", 1.2, true)
-	cfg.Set("bar", "string", true)
-	cfg.Set("buzz", "1.3", false)
-	cfg.Set("bizz", "string", false)
+	cfg.Set("foo", 1, 0, true)
+	cfg.Set("fizz", 1.2, 0, true)
+	cfg.Set("bar", "string", 0, true)
+	cfg.Set("buzz", "1.3", 0, false)
+	cfg.Set("bizz", "string", 0, false)
 
 	xycond.ExpectEqual(cfg.MustGet("foo").MustFloat(), 1.0).Test(t)
 	xycond.ExpectEqual(cfg.MustGet("fizz").MustFloat(), 1.2).Test(t)
@@ -184,11 +184,11 @@ func TestValueMustFloat(t *testing.T) {
 
 func TestValueAsFloat(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", 1, true)
-	cfg.Set("fizz", 1.2, true)
-	cfg.Set("bar", "string", true)
-	cfg.Set("buzz", "1.3", false)
-	cfg.Set("bizz", "string", false)
+	cfg.Set("foo", 1, 0, true)
+	cfg.Set("fizz", 1.2, 0, true)
+	cfg.Set("bar", "string", 0, true)
+	cfg.Set("buzz", "1.3", 0, false)
+	cfg.Set("bizz", "string", 0, false)
 
 	var i float64
 	var ok bool
@@ -214,11 +214,11 @@ func TestValueAsFloat(t *testing.T) {
 
 func TestValueMustBool(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", true, true)
-	cfg.Set("fizz", 1, true)
-	cfg.Set("bar", "false", true)
-	cfg.Set("buzz", "false", false)
-	cfg.Set("bizz", "FALSE", false)
+	cfg.Set("foo", true, 0, true)
+	cfg.Set("fizz", 1, 0, true)
+	cfg.Set("bar", "false", 0, true)
+	cfg.Set("buzz", "false", 0, false)
+	cfg.Set("bizz", "FALSE", 0, false)
 
 	xycond.ExpectEqual(cfg.MustGet("foo").MustBool(), true).Test(t)
 	xycond.ExpectPanic(xyconfig.CastError, func() { cfg.MustGet("fizz").MustBool() }).Test(t)
@@ -229,11 +229,11 @@ func TestValueMustBool(t *testing.T) {
 
 func TestValueAsBool(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", true, true)
-	cfg.Set("fizz", 1, true)
-	cfg.Set("bar", "false", true)
-	cfg.Set("buzz", "false", false)
-	cfg.Set("bizz", "FALSE", false)
+	cfg.Set("foo", true, 0, true)
+	cfg.Set("fizz", 1, 0, true)
+	cfg.Set("bar", "false", 0, true)
+	cfg.Set("buzz", "false", 0, false)
+	cfg.Set("bizz", "FALSE", 0, false)
 
 	var b bool
 	var ok bool
@@ -259,8 +259,8 @@ func TestValueAsBool(t *testing.T) {
 
 func TestValueMustString(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", "string", true)
-	cfg.Set("bar", 1, true)
+	cfg.Set("foo", "string", 0, true)
+	cfg.Set("bar", 1, 0, true)
 
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "string").Test(t)
 	xycond.ExpectPanic(xyconfig.CastError, func() { cfg.MustGet("bar").MustString() }).Test(t)
@@ -268,8 +268,8 @@ func TestValueMustString(t *testing.T) {
 
 func TestValueAsString(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", "string", true)
-	cfg.Set("bar", 1, true)
+	cfg.Set("foo", "string", 0, true)
+	cfg.Set("bar", 1, 0, true)
 
 	var i string
 	var ok bool
@@ -284,9 +284,9 @@ func TestValueAsString(t *testing.T) {
 
 func TestValueMustArray(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", []any{1, "foo"}, true)
-	cfg.Set("bar", `1, foo`, false)
-	cfg.Set("buzz", `1, `, false)
+	cfg.Set("foo", []any{1, "foo"}, 0, true)
+	cfg.Set("bar", `1, foo`, 0, false)
+	cfg.Set("buzz", `1, `, 0, false)
 
 	var array = cfg.MustGet("foo").MustArray()
 	xycond.ExpectEqual(array[0].MustInt(), 1).Test(t)
@@ -302,10 +302,10 @@ func TestValueMustArray(t *testing.T) {
 
 func TestValueAsArray(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", []any{1, "foo"}, true)
-	cfg.Set("bar", `1, foo`, false)
-	cfg.Set("buzz", `1, `, true)
-	cfg.Set("bizz", `1, `, false)
+	cfg.Set("foo", []any{1, "foo"}, 0, true)
+	cfg.Set("bar", `1, foo`, 0, false)
+	cfg.Set("buzz", `1, `, 0, true)
+	cfg.Set("bizz", `1, `, 0, false)
 
 	var array []xyconfig.Value
 	var ok bool
@@ -330,10 +330,10 @@ func TestValueAsArray(t *testing.T) {
 
 func TestValueString(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", 1, true)
-	cfg.Set("bar", "string", true)
-	cfg.Set("buzz", 1.2, false)
-	cfg.Set("bizz", []any{1, "foo"}, false)
+	cfg.Set("foo", 1, 0, true)
+	cfg.Set("bar", "string", 0, true)
+	cfg.Set("buzz", 1.2, 0, false)
+	cfg.Set("bizz", []any{1, "foo"}, 0, false)
 
 	xycond.ExpectEqual(cfg.MustGet("foo").String(), "1").Test(t)
 	xycond.ExpectEqual(cfg.MustGet("bar").String(), "string").Test(t)

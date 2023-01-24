@@ -29,8 +29,9 @@ import (
 
 // Value instance represents for values in Config.
 type Value struct {
-	value  any
-	strict bool
+	priority int
+	value    any
+	strict   bool
 }
 
 // IsNil return true if value is nil.

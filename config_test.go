@@ -43,15 +43,27 @@ func TestConfigGetConfigEmptyName(t *testing.T) {
 
 func TestConfigSet(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", "bar", true)
+	cfg.Set("foo", "bar", 0, true)
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
+}
+
+func TestConfigSetWithPriority(t *testing.T) {
+	var cfg = xyconfig.GetConfig(t.Name())
+	cfg.Set("foo", "bar", 10, true)
+	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
+
+	cfg.Set("foo", "buzz", 20, true)
+	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "buzz").Test(t)
+
+	cfg.Set("foo", "bizz", 10, true)
+	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "buzz").Test(t)
 }
 
 func TestConfigSetSubConfig(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo.buzz", "bar", true)
+	cfg.Set("foo.buzz", "bar", 0, true)
 	xycond.ExpectEqual(cfg.MustGet("foo.buzz").MustString(), "bar").Test(t)
-	cfg.Set("foo.buzz.bar", "bar", true)
+	cfg.Set("foo.buzz.bar", "bar", 0, true)
 	xycond.ExpectEqual(cfg.MustGet("foo.buzz.bar").MustString(), "bar").Test(t)
 }
 
@@ -61,7 +73,7 @@ func TestConfigSetWithHook(t *testing.T) {
 	cfg.AddHook("foo", func(e xyconfig.Event) {
 		event = e
 	})
-	cfg.Set("foo", "bar", true)
+	cfg.Set("foo", "bar", 0, true)
 	xycond.ExpectTrue(event.Old.IsNil()).Test(t)
 	xycond.ExpectEqual(event.New.MustString(), "bar").Test(t)
 	xycond.ExpectEqual(event.Key, t.Name()+".foo").Test(t)
@@ -73,7 +85,7 @@ func TestConfigSetWithHookAny(t *testing.T) {
 	cfg.AddHook("", func(e xyconfig.Event) {
 		event = e
 	})
-	cfg.Set("foo", "bar", true)
+	cfg.Set("foo", "bar", 0, true)
 	xycond.ExpectTrue(event.Old.IsNil()).Test(t)
 	xycond.ExpectEqual(event.New.MustString(), "bar").Test(t)
 	xycond.ExpectEqual(event.Key, t.Name()+".foo").Test(t)
@@ -81,7 +93,7 @@ func TestConfigSetWithHookAny(t *testing.T) {
 
 func TestConfigReadMap(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.ReadMap(map[string]any{
+	cfg.ReadMap(0, map[string]any{
 		"foo": "bar",
 		"buzz": map[string]any{
 			"bizz": "bemm",
@@ -96,7 +108,7 @@ func TestConfigReadMap(t *testing.T) {
 
 func TestConfigReadJSON(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.ReadJSON([]byte(`{"foo": "bar", "buzz": {"bizz": "bemm"}, "nil": null}`))
+	cfg.ReadJSON(0, []byte(`{"foo": "bar", "buzz": {"bizz": "bemm"}, "nil": null}`))
 
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
 	xycond.ExpectEqual(cfg.MustGet("buzz.bizz").MustString(), "bemm").Test(t)
@@ -105,21 +117,21 @@ func TestConfigReadJSON(t *testing.T) {
 
 func TestConfigReadJSONWithDotKey(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.ReadJSON([]byte(`{"foo.buzz": "bar"}`))
+	cfg.ReadJSON(0, []byte(`{"foo.buzz": "bar"}`))
 
 	xycond.ExpectEqual(cfg.MustGet("foo.buzz").MustString(), "bar").Test(t)
 }
 
 func TestConfigReadJSONWithError(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	var err = cfg.ReadJSON([]byte(`{""`))
+	var err = cfg.ReadJSON(0, []byte(`{""`))
 
 	xycond.ExpectError(err, xyerror.ValueError).Test(t)
 }
 
 func TestConfigReadINI(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.ReadINI([]byte("[foo]\nfizz=bar\n[buzz]\nbizz=bemm\nnil="))
+	cfg.ReadINI(0, []byte("[foo]\nfizz=bar\n[buzz]\nbizz=bemm\nnil="))
 
 	xycond.ExpectEqual(cfg.MustGet("foo.fizz").MustString(), "bar").Test(t)
 	xycond.ExpectEqual(cfg.MustGet("buzz.bizz").MustString(), "bemm").Test(t)
@@ -128,14 +140,14 @@ func TestConfigReadINI(t *testing.T) {
 
 func TestConfigReadINIWithError(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	var err = cfg.ReadINI([]byte("[foo]\nbar"))
+	var err = cfg.ReadINI(0, []byte("[foo]\nbar"))
 
 	xycond.ExpectError(err, xyerror.ValueError).Test(t)
 }
 
 func TestConfigReadByteJSON(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.ReadBytes(xyconfig.JSON, []byte(`{"foo": "bar", "buzz": {"bizz": "bemm"}, "nil": null}`))
+	cfg.ReadBytes(xyconfig.JSON, 0, []byte(`{"foo": "bar", "buzz": {"bizz": "bemm"}, "nil": null}`))
 
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
 	xycond.ExpectEqual(cfg.MustGet("buzz.bizz").MustString(), "bemm").Test(t)
@@ -144,7 +156,7 @@ func TestConfigReadByteJSON(t *testing.T) {
 
 func TestConfigReadByteINI(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.ReadBytes(xyconfig.INI, []byte("[foo]\nfizz=bar\n[buzz]\nbizz=bemm\nnil="))
+	cfg.ReadBytes(xyconfig.INI, 0, []byte("[foo]\nfizz=bar\n[buzz]\nbizz=bemm\nnil="))
 
 	xycond.ExpectEqual(cfg.MustGet("foo.fizz").MustString(), "bar").Test(t)
 	xycond.ExpectEqual(cfg.MustGet("buzz.bizz").MustString(), "bemm").Test(t)
@@ -153,7 +165,7 @@ func TestConfigReadByteINI(t *testing.T) {
 
 func TestConfigReadByteENV(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.ReadBytes(xyconfig.ENV, []byte("fizz=bar\nbizz=bemm\nnil="))
+	cfg.ReadBytes(xyconfig.ENV, 0, []byte("fizz=bar\nbizz=bemm\nnil="))
 
 	xycond.ExpectEqual(cfg.MustGet("fizz").MustString(), "bar").Test(t)
 	xycond.ExpectEqual(cfg.MustGet("bizz").MustString(), "bemm").Test(t)
@@ -162,7 +174,7 @@ func TestConfigReadByteENV(t *testing.T) {
 
 func TestConfigReadByteUnknown(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	var err = cfg.ReadBytes(xyconfig.UnknownFormat, []byte(""))
+	var err = cfg.ReadBytes(xyconfig.UnknownFormat, 0, []byte(""))
 
 	xycond.ExpectError(err, xyconfig.FormatError).Test(t)
 }
@@ -205,6 +217,23 @@ func TestConfigReadFileWithChange(t *testing.T) {
 
 	ioutil.WriteFile(t.Name()+".json", []byte(`{"foo": "buzz"}`), 0644)
 	time.Sleep(time.Millisecond)
+	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "buzz").Test(t)
+}
+
+func TestConfigReadFileWithPriority(t *testing.T) {
+	ioutil.WriteFile("10-"+t.Name()+".json", []byte(`{"foo": "bar"}`), 0644)
+	ioutil.WriteFile("20-"+t.Name()+".json", []byte(`{"foo": "buzz"}`), 0644)
+
+	var cfg = xyconfig.GetConfig(t.Name())
+	defer cfg.CloseWatcher()
+
+	cfg.ReadFile("10-"+t.Name()+".json", false)
+	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "bar").Test(t)
+
+	cfg.ReadFile("20-"+t.Name()+".json", false)
+	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "buzz").Test(t)
+
+	cfg.ReadFile("10-"+t.Name()+".json", false)
 	xycond.ExpectEqual(cfg.MustGet("foo").MustString(), "buzz").Test(t)
 }
 
@@ -277,14 +306,14 @@ func TestConfigReadFileErrorParse(t *testing.T) {
 
 func TestConfigMustGet(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", "bar", true)
+	cfg.Set("foo", "bar", 0, true)
 
 	xycond.ExpectPanic(xyconfig.ConfigKeyError, func() { cfg.MustGet("bar") })
 }
 
 func TestConfigGetDefault(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", "bar", true)
+	cfg.Set("foo", "bar", 0, true)
 
 	xycond.ExpectEqual(cfg.GetDefault("foo", "buzzz").MustString(), "bar").Test(t)
 	xycond.ExpectEqual(cfg.GetDefault("bar", "buzzz").MustString(), "buzzz").Test(t)
@@ -292,8 +321,8 @@ func TestConfigGetDefault(t *testing.T) {
 
 func TestConfigToMap(t *testing.T) {
 	var cfg = xyconfig.GetConfig(t.Name())
-	cfg.Set("foo", "bar", true)
-	cfg.Set("subcfg.buzz", "bar", false)
+	cfg.Set("foo", "bar", 0, true)
+	cfg.Set("subcfg.buzz", "bar", 0, false)
 
 	xycond.ExpectEqual(cfg.ToMap()["foo"], "bar").Test(t)
 	xycond.ExpectIn("buzz", cfg.ToMap()["subcfg"]).Test(t)

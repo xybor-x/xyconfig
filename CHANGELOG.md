@@ -1,8 +1,13 @@
+# v2.0.0 (Jan 25, 2023)
+
+1. Allow determining the priority of files.
+
 # v1.4.1 (Jan 24, 2023)
 
 1. String should be changed to array without brackets.
 
 # v1.4.0 (Jan 16, 2023)
+
 1. Support AWS S3.
 
 # v1.3.2 (Jan 11, 2023)
@@ -23,7 +28,7 @@
 
 # v1.1.1 (Jan 8, 2023)
 
-1.  Allow watching file even if the file didn't exist.
+1. Allow watching file even if the file didn't exist.
 
 # v1.1.0 (Jan 8, 2023)
 
